@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="560" viewBox="0 0 920 560" font-family="Segoe UI, Verdana, sans-serif">
+  <style>
+    .box { fill: #eaf2fb; stroke: #2c3e50; stroke-width: 2; rx: 10; }
+    .ext { fill: #fdf3e3; stroke: #c0872b; stroke-width: 2; stroke-dasharray: 6 4; rx: 10; }
+    .db  { fill: #e9f7ef; stroke: #27ae60; stroke-width: 2; rx: 10; }
+    .label { font-size: 16px; font-weight: bold; fill: #2c3e50; text-anchor: middle; }
+    .sub { font-size: 12px; fill: #555; text-anchor: middle; }
+    .arrow { stroke: #2c3e50; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+    .arrow-ext { stroke: #c0872b; stroke-width: 2; fill: none; stroke-dasharray: 6 4; marker-end: url(#arrowhead-ext); }
+    .method { font-size: 11px; fill: #34495e; text-anchor: middle; }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2c3e50" />
+    </marker>
+    <marker id="arrowhead-ext" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c0872b" />
+    </marker>
+  </defs>
+
+  <text x="460" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">
+    Arquitetura - Biblioteca MVP (Cenário 1)
+  </text>
+
+  <!-- Interface -->
+  <rect class="box" x="40" y="220" width="200" height="90"/>
+  <text class="label" x="140" y="255">Interface</text>
+  <text class="sub" x="140" y="273">Frontend (HTML/CSS/JS)</text>
+  <text class="sub" x="140" y="289">módulo desenvolvido</text>
+
+  <!-- API Backend -->
+  <rect class="box" x="360" y="220" width="220" height="90"/>
+  <text class="label" x="470" y="252">API Backend (Flask)</text>
+  <text class="sub" x="470" y="270">Livros, Empréstimos, Unidades</text>
+  <text class="sub" x="470" y="286">módulo desenvolvido</text>
+
+  <!-- DB -->
+  <rect class="db" x="660" y="230" width="200" height="70"/>
+  <text class="label" x="760" y="260">SQLite</text>
+  <text class="sub" x="760" y="278">Persistência de dados</text>
+
+  <!-- Open Library -->
+  <rect class="ext" x="360" y="40" width="220" height="80"/>
+  <text class="label" x="470" y="70">Open Library API</text>
+  <text class="sub" x="470" y="88">Serviço externo</text>
+  <text class="sub" x="470" y="104">busca capa/autor do livro</text>
+
+  <!-- ViaCEP -->
+  <rect class="ext" x="360" y="430" width="220" height="80"/>
+  <text class="label" x="470" y="460">ViaCEP API</text>
+  <text class="sub" x="470" y="478">Serviço externo</text>
+  <text class="sub" x="470" y="494">busca endereço da unidade</text>
+
+  <!-- WhatsApp -->
+  <rect class="ext" x="40" y="430" width="200" height="80"/>
+  <text class="label" x="140" y="460">WhatsApp</text>
+  <text class="sub" x="140" y="478">link de contato (wa.me)</text>
+  <text class="sub" x="140" y="494">fora do fluxo de dados</text>
+
+  <!-- Arrows: Interface <-> Backend -->
+  <path class="arrow" d="M240,250 L360,250"/>
+  <path class="arrow" d="M360,280 L240,280"/>
+  <text class="method" x="300" y="243">REST (GET/POST/PUT/DELETE)</text>
+
+  <!-- Backend <-> DB -->
+  <path class="arrow" d="M580,255 L660,255"/>
+  <path class="arrow" d="M660,275 L580,275"/>
+  <text class="method" x="620" y="243">SQLAlchemy</text>
+
+  <!-- Backend -> Open Library -->
+  <path class="arrow-ext" d="M470,220 L470,120"/>
+  <text class="method" x="560" y="175">consulta e trata</text>
+  <text class="method" x="560" y="188">os dados (sem redirect)</text>
+
+  <!-- Backend -> ViaCEP -->
+  <path class="arrow-ext" d="M470,310 L470,430"/>
+  <text class="method" x="560" y="375">consulta e trata</text>
+  <text class="method" x="560" y="388">os dados (sem redirect)</text>
+
+  <!-- Interface -> WhatsApp -->
+  <path class="arrow-ext" d="M140,310 L140,430"/>
+  <text class="method" x="140" y="395">link externo</text>
+</svg>

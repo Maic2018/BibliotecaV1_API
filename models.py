@@ -25,6 +25,31 @@ class Book(db.Model):
             'image_url': self.image_url
         }
 
+class LibraryUnit(db.Model):
+    """Unidade física da biblioteca. O endereço é preenchido
+    automaticamente a partir do CEP, consultando a API externa ViaCEP."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(30), nullable=True)
+    cep = db.Column(db.String(9), nullable=False)
+    logradouro = db.Column(db.String(200), nullable=True)
+    bairro = db.Column(db.String(120), nullable=True)
+    cidade = db.Column(db.String(120), nullable=True)
+    uf = db.Column(db.String(2), nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'phone': self.phone,
+            'cep': self.cep,
+            'logradouro': self.logradouro,
+            'bairro': self.bairro,
+            'cidade': self.cidade,
+            'uf': self.uf,
+        }
+
+
 class Borrow(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

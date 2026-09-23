@@ -1,5 +1,6 @@
 from werkzeug.security import check_password_hash
-from models import Book, Borrow
+from models import Book, Borrow, LibraryUnit
+from external_services import OpenLibraryClient, ViaCepClient
 
 class AuthService:
     def __init__(self, user_repository):
@@ -12,10 +13,23 @@ class AuthService:
         return None
 
 class BookService:
-    def __init__(self, book_repository, borrow_repository):
+    def __init__(self, book_repository, borrow_repository, open_library_client=None):
         self.book_repo = book_repository
         self.borrow_repo = borrow_repository
-        
+        self.open_library_client = open_library_client or OpenLibraryClient()
+
+    def lookup_external_info(self, title):
+        """Consulta a API externa Open Library por título e devolve
+        autor/capa sugeridos para preencher o formulário de cadastro."""
+        if not title:
+            return None, "Informe um título para a busca"
+
+        result = self.open_library_client.search_book(title)
+        if not result:
+            return None, "Nenhum resultado encontrado na Open Library para este título"
+
+        return result, None
+
     def get_all_books(self):
         books = self.book_repo.get_all()
         return [book.to_dict() for book in books]
@@ -111,3 +125,61 @@ class BorrowService:
             "book": b.book.title,
             "book_id": b.book_id
         } for b in borrows]
+
+
+class UnitService:
+    """Gerencia as unidades físicas da biblioteca. O endereço de cada
+    unidade é resolvido automaticamente a partir do CEP, consultando a
+    API externa ViaCEP, para que o admin não precise digitá-lo à mão."""
+
+    def __init__(self, unit_repository, via_cep_client=None):
+        self.unit_repo = unit_repository
+        self.via_cep_client = via_cep_client or ViaCepClient()
+
+    def get_all_units(self):
+        return [unit.to_dict() for unit in self.unit_repo.get_all()]
+
+    def add_unit(self, data):
+        if not data or not data.get('name') or not data.get('cep'):
+            return None, "Nome e CEP são obrigatórios"
+
+        address = self.via_cep_client.lookup(data['cep'])
+        if not address:
+            return None, "CEP não encontrado ou inválido"
+
+        new_unit = LibraryUnit(
+            name=data['name'],
+            phone=data.get('phone', ''),
+            cep=address['cep'],
+            logradouro=address['logradouro'],
+            bairro=address['bairro'],
+            cidade=address['cidade'],
+            uf=address['uf'],
+        )
+        self.unit_repo.add(new_unit)
+        return new_unit.to_dict(), None
+
+    def edit_unit(self, unit_id, data):
+        unit = self.unit_repo.get_by_id(unit_id)
+
+        if 'name' in data:
+            unit.name = data['name']
+        if 'phone' in data:
+            unit.phone = data['phone']
+        if 'cep' in data and data['cep']:
+            address = self.via_cep_client.lookup(data['cep'])
+            if not address:
+                return None, "CEP não encontrado ou inválido"
+            unit.cep = address['cep']
+            unit.logradouro = address['logradouro']
+            unit.bairro = address['bairro']
+            unit.cidade = address['cidade']
+            unit.uf = address['uf']
+
+        self.unit_repo.update()
+        return unit.to_dict(), None
+
+    def delete_unit(self, unit_id):
+        unit = self.unit_repo.get_by_id(unit_id)
+        self.unit_repo.delete(unit)
+        return True, None

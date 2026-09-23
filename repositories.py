@@ -1,4 +1,4 @@
-from models import db, User, Book, Borrow
+from models import db, User, Book, Borrow, LibraryUnit
 
 class UserRepository:
     def get_by_username(self, username):
@@ -22,6 +22,25 @@ class BookRepository:
         
     def delete(self, book):
         db.session.delete(book)
+        db.session.commit()
+
+class UnitRepository:
+    def get_all(self):
+        return LibraryUnit.query.all()
+
+    def get_by_id(self, unit_id):
+        return LibraryUnit.query.get_or_404(unit_id)
+
+    def add(self, unit):
+        db.session.add(unit)
+        db.session.commit()
+        return unit
+
+    def update(self):
+        db.session.commit()
+
+    def delete(self, unit):
+        db.session.delete(unit)
         db.session.commit()
 
 class BorrowRepository:

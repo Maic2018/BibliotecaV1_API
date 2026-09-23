@@ -2,8 +2,9 @@ import os
 from flask import Flask
 from flask_cors import CORS
 from flasgger import Swagger
-from models import db, User
+from models import db, User, LibraryUnit
 from werkzeug.security import generate_password_hash
+from external_services import ViaCepClient
 
 def create_app():
     app = Flask(__name__)
@@ -55,11 +56,38 @@ def create_app():
                 is_admin=False
             )
             db.session.add(default_user)
-            
+
         db.session.commit()
+
+        # Criar unidades padrão se ainda não existir nenhuma.
+        # O endereço de cada uma é buscado de verdade na API externa
+        # ViaCEP, assim a seção "Nossas Unidades" já nasce populada.
+        if not LibraryUnit.query.first():
+            via_cep = ViaCepClient()
+            default_units = [
+                {"name": "Biblioteca Central", "phone": "(11) 3000-1000", "cep": "01310-100"},
+                {"name": "Unidade Itaim Bibi", "phone": "(11) 3000-2000", "cep": "04538-133"},
+            ]
+            for unit_data in default_units:
+                address = via_cep.lookup(unit_data["cep"])
+                if not address:
+                    # Se a API externa estiver indisponível no momento do
+                    # start (ex: sem internet), pula a semeadura em vez de
+                    # derrubar a aplicação. O admin pode cadastrar manualmente.
+                    continue
+                db.session.add(LibraryUnit(
+                    name=unit_data["name"],
+                    phone=unit_data["phone"],
+                    cep=address["cep"],
+                    logradouro=address["logradouro"],
+                    bairro=address["bairro"],
+                    cidade=address["cidade"],
+                    uf=address["uf"],
+                ))
+            db.session.commit()
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', debug=True, port=5000)

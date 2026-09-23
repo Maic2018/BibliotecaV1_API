@@ -1,18 +1,20 @@
 from flask import request, jsonify
 from functools import wraps
-from repositories import UserRepository, BookRepository, BorrowRepository
-from services import AuthService, BookService, BorrowService
+from repositories import UserRepository, BookRepository, BorrowRepository, UnitRepository
+from services import AuthService, BookService, BorrowService, UnitService
 
 # -------------------------------------------------------------------
-# INVERSÃO DE DEPENDÊNCIA 
+# INVERSÃO DE DEPENDÊNCIA
 # -------------------------------------------------------------------
 user_repo = UserRepository()
 book_repo = BookRepository()
 borrow_repo = BorrowRepository()
+unit_repo = UnitRepository()
 
 auth_service = AuthService(user_repo)
 book_service = BookService(book_repo, borrow_repo)
 borrow_service = BorrowService(book_repo, borrow_repo)
+unit_service = UnitService(unit_repo)
 # -------------------------------------------------------------------
 
 def check_auth(username, password):
@@ -300,3 +302,157 @@ def register_routes(app):
         """
         result = borrow_service.get_all_borrows()
         return jsonify(result), 200
+
+    @app.route('/api/books/external-lookup', methods=['GET'])
+    @requires_admin
+    def lookup_book_external():
+        """
+        Busca automaticamente autor e capa de um livro na API externa
+        Open Library, a partir do título (Apenas Admin).
+        ---
+        tags:
+          - Livros (Admin)
+        security:
+          - basicAuth: []
+        parameters:
+          - name: title
+            in: query
+            type: string
+            required: true
+        responses:
+          200:
+            description: Dados encontrados na Open Library
+          400:
+            description: Título ausente ou nada encontrado
+        """
+        title = request.args.get('title', '')
+        result, error = book_service.lookup_external_info(title)
+
+        if error:
+            return jsonify({"message": error}), 400
+
+        return jsonify(result), 200
+
+    @app.route('/api/units', methods=['GET'])
+    def get_units():
+        """
+        Lista as unidades físicas da biblioteca, com endereço obtido
+        via API externa ViaCEP.
+        ---
+        tags:
+          - Unidades
+        responses:
+          200:
+            description: Lista de unidades
+        """
+        units = unit_service.get_all_units()
+        return jsonify(units), 200
+
+    @app.route('/api/units', methods=['POST'])
+    @requires_admin
+    def add_unit():
+        """
+        Cadastra uma nova unidade da biblioteca (Apenas Admin).
+        O endereço é preenchido automaticamente a partir do CEP
+        informado, consultando a API externa ViaCEP.
+        ---
+        tags:
+          - Unidades (Admin)
+        security:
+          - basicAuth: []
+        parameters:
+          - in: body
+            name: body
+            required: true
+            schema:
+              type: object
+              required:
+                - name
+                - cep
+              properties:
+                name:
+                  type: string
+                cep:
+                  type: string
+                phone:
+                  type: string
+        responses:
+          201:
+            description: Unidade criada com sucesso
+          400:
+            description: Dados incompletos ou CEP inválido
+        """
+        data = request.get_json()
+        unit_dict, error = unit_service.add_unit(data)
+
+        if error:
+            return jsonify({'message': error}), 400
+
+        return jsonify(unit_dict), 201
+
+    @app.route('/api/units/<int:unit_id>', methods=['PUT'])
+    @requires_admin
+    def edit_unit(unit_id):
+        """
+        Edita uma unidade da biblioteca (Apenas Admin).
+        Se um novo CEP for enviado, o endereço é atualizado via ViaCEP.
+        ---
+        tags:
+          - Unidades (Admin)
+        security:
+          - basicAuth: []
+        parameters:
+          - name: unit_id
+            in: path
+            type: integer
+            required: true
+          - in: body
+            name: body
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                cep:
+                  type: string
+                phone:
+                  type: string
+        responses:
+          200:
+            description: Unidade atualizada com sucesso
+          400:
+            description: CEP inválido
+          404:
+            description: Unidade não encontrada
+        """
+        data = request.get_json()
+        unit_dict, error = unit_service.edit_unit(unit_id, data)
+
+        if error:
+            return jsonify({'message': error}), 400
+
+        return jsonify(unit_dict), 200
+
+    @app.route('/api/units/<int:unit_id>', methods=['DELETE'])
+    @requires_admin
+    def delete_unit(unit_id):
+        """
+        Remove uma unidade da biblioteca (Apenas Admin).
+        ---
+        tags:
+          - Unidades (Admin)
+        security:
+          - basicAuth: []
+        parameters:
+          - name: unit_id
+            in: path
+            type: integer
+            required: true
+        responses:
+          200:
+            description: Unidade removida com sucesso
+          404:
+            description: Unidade não encontrada
+        """
+        unit_service.delete_unit(unit_id)
+        return jsonify({"message": "Unidade removida"}), 200
